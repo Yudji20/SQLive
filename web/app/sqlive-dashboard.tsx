@@ -93,6 +93,22 @@ function metricValue(world: WorldSnapshot | null, label: string) {
   return world?.metrics.find((metric) => metric.label === label)?.value ?? "-";
 }
 
+function organismSpeed(organism: Organism) {
+  return organism.genes?.speed ?? organism.speed ?? 0;
+}
+
+function organismMetabolism(organism: Organism) {
+  return organism.genes?.metabolism ?? organism.metabolism ?? 0;
+}
+
+function organismStrength(organism: Organism) {
+  return organism.genes?.strength ?? organism.strength ?? 0;
+}
+
+function organismMass(organism: Organism) {
+  return organism.genes?.mass ?? organism.mass ?? 0;
+}
+
 function pointKey(point: { x: number; y: number }) {
   return `${point.x}:${point.y}`;
 }
@@ -106,6 +122,88 @@ function buildFallbackTiles(width: number, height: number) {
     x: (index % width) + 1,
     y: Math.floor(index / width) + 1,
   }));
+}
+
+function average(values: number[]) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function formatMetricNumber(value: number, digits = 2) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "-";
+}
+
+function correlation(items: Organism[], readA: (organism: Organism) => number, readB: (organism: Organism) => number) {
+  if (items.length < 2) {
+    return 0;
+  }
+
+  const valuesA = items.map(readA);
+  const valuesB = items.map(readB);
+  const avgA = average(valuesA);
+  const avgB = average(valuesB);
+  const numerator = items.reduce(
+    (sum, _, index) => sum + (valuesA[index] - avgA) * (valuesB[index] - avgB),
+    0,
+  );
+  const denominatorA = Math.sqrt(valuesA.reduce((sum, value) => sum + (value - avgA) ** 2, 0));
+  const denominatorB = Math.sqrt(valuesB.reduce((sum, value) => sum + (value - avgB) ** 2, 0));
+
+  if (denominatorA === 0 || denominatorB === 0) {
+    return 0;
+  }
+
+  return numerator / (denominatorA * denominatorB);
+}
+
+function quadrantLabel(organism: Organism, width: number, height: number) {
+  const vertical = organism.y <= height / 2 ? "Norte" : "Sul";
+  const horizontal = organism.x <= width / 2 ? "Oeste" : "Leste";
+
+  return `${vertical}-${horizontal}`;
+}
+
+function buildSpatialBands(world: WorldSnapshot | null) {
+  if (!world) {
+    return [];
+  }
+
+  const labels = ["Norte-Oeste", "Norte-Leste", "Sul-Oeste", "Sul-Leste"];
+
+  return labels.map((label) => {
+    const organisms = world.entities.filter(
+      (organism) => quadrantLabel(organism, world.width, world.height) === label,
+    );
+
+    return {
+      label,
+      count: organisms.length,
+      share: world.entities.length ? (organisms.length / world.entities.length) * 100 : 0,
+      avgSpeed: average(organisms.map(organismSpeed)),
+      avgMetabolism: average(organisms.map(organismMetabolism)),
+      avgStrength: average(organisms.map(organismStrength)),
+      avgMass: average(organisms.map(organismMass)),
+      avgEnergy: average(organisms.map((organism) => organism.energy)),
+    };
+  });
+}
+
+function dominantQuadrant(organisms: Organism[], width: number, height: number) {
+  if (organisms.length === 0) {
+    return "-";
+  }
+
+  const counts = new Map<string, number>();
+
+  organisms.forEach((organism) => {
+    const label = quadrantLabel(organism, width, height);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  });
+
+  return [...counts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? "-";
 }
 
 export function SqliveDashboard() {
@@ -192,7 +290,7 @@ export function SqliveDashboard() {
       return [];
     }
 
-    return world.tiles.length ? world.tiles : buildFallbackTiles(world.width, world.height);
+    return buildFallbackTiles(world.width, world.height);
   }, [world]);
 
   const resourcePoints = useMemo(
@@ -200,6 +298,22 @@ export function SqliveDashboard() {
     [world?.resources],
   );
   const organismPoints = useMemo(() => new Set((world?.entities ?? []).map(pointKey)), [world?.entities]);
+  const fastestOrganisms = useMemo(() => {
+    const organisms = [...(world?.entities ?? [])].sort((left, right) => organismSpeed(right) - organismSpeed(left));
+    const take = Math.max(1, Math.ceil(organisms.length * 0.25));
+
+    return organisms.slice(0, take);
+  }, [world?.entities]);
+  const fastestPoints = useMemo(() => new Set(fastestOrganisms.map(pointKey)), [fastestOrganisms]);
+  const spatialBands = useMemo(() => buildSpatialBands(world), [world]);
+  const fastAvgX = average(fastestOrganisms.map((organism) => organism.x));
+  const fastAvgY = average(fastestOrganisms.map((organism) => organism.y));
+  const speedXCorrelation = correlation(world?.entities ?? [], organismSpeed, (organism) => organism.x);
+  const speedYCorrelation = correlation(world?.entities ?? [], organismSpeed, (organism) => organism.y);
+  const fastestQuadrant =
+    fastestOrganisms.length > 0 && world
+      ? dominantQuadrant(fastestOrganisms, world.width, world.height)
+      : "-";
   const metricHistory = world?.raw?.metrics ?? [];
 
   return (
@@ -317,6 +431,7 @@ export function SqliveDashboard() {
               const key = pointKey(tile);
               const hasOrganism = organismPoints.has(key);
               const hasResource = resourcePoints.has(key);
+              const hasFastOrganism = fastestPoints.has(key);
 
               return (
                 <span
@@ -325,6 +440,7 @@ export function SqliveDashboard() {
                     hasOrganism ? "organism" : "",
                     hasResource ? "resource" : "",
                     hasOrganism && hasResource ? "both" : "",
+                    hasFastOrganism ? "fastOrganism" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -338,6 +454,7 @@ export function SqliveDashboard() {
             <span><i className="organismSample" /> organismo</span>
             <span><i className="resourceSample" /> recurso</span>
             <span><i className="bothSample" /> disputa/comida</span>
+            <span><i className="fastSample" /> top 25% velocidade</span>
           </div>
         </section>
 
@@ -386,6 +503,70 @@ export function SqliveDashboard() {
             </div>
           </section>
         </aside>
+      </section>
+
+      <section className="analysisPanel">
+        <div className="sectionTitle">
+          <div>
+            <h2>Leitura emergente</h2>
+            <p>Primeira camada para observar agrupamento espacial dos genes.</p>
+          </div>
+          <span>top 25% por velocidade</span>
+        </div>
+
+        <div className="insightGrid">
+          <article>
+            <span>Centro dos mais rapidos</span>
+            <strong>x {formatMetricNumber(fastAvgX, 1)} · y {formatMetricNumber(fastAvgY, 1)}</strong>
+          </article>
+          <article>
+            <span>Quadrante dominante</span>
+            <strong>{fastestQuadrant}</strong>
+          </article>
+          <article>
+            <span>Correlacao velocidade x X</span>
+            <strong>{formatMetricNumber(speedXCorrelation, 3)}</strong>
+          </article>
+          <article>
+            <span>Correlacao velocidade x Y</span>
+            <strong>{formatMetricNumber(speedYCorrelation, 3)}</strong>
+          </article>
+        </div>
+
+        <div className="tableWrap compactTable">
+          <table>
+            <thead>
+              <tr>
+                <th>Regiao</th>
+                <th>Pop</th>
+                <th>Distribuicao</th>
+                <th>Vel</th>
+                <th>Met</th>
+                <th>For</th>
+                <th>Massa</th>
+                <th>Energia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {spatialBands.map((band) => (
+                <tr key={band.label}>
+                  <td>{band.label}</td>
+                  <td>{band.count}</td>
+                  <td>
+                    <span className="barTrack">
+                      <span style={{ width: `${Math.min(100, band.share)}%` }} />
+                    </span>
+                  </td>
+                  <td>{formatMetricNumber(band.avgSpeed)}</td>
+                  <td>{formatMetricNumber(band.avgMetabolism)}</td>
+                  <td>{formatMetricNumber(band.avgStrength)}</td>
+                  <td>{formatMetricNumber(band.avgMass)}</td>
+                  <td>{formatMetricNumber(band.avgEnergy, 1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="dataPanel">
