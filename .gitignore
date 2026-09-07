@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+Acesso.md
+acesso.md
+analysis_output*/
+__pycache__/
+*.pyc
+node_modules/
+.next/
+.vercel/

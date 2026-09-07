@@ -1,0 +1,322 @@
+:root {
+  color-scheme: dark;
+  --bg: #101411;
+  --panel: #171d18;
+  --panel-2: #20271f;
+  --line: #334037;
+  --text: #eef4eb;
+  --muted: #9eaa9b;
+  --accent: #d6b25e;
+  --accent-2: #86d79b;
+  --danger: #d67568;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(134, 215, 155, 0.12), transparent 26rem),
+    linear-gradient(135deg, #0f1615 0%, #151811 48%, #11181a 100%);
+  color: var(--text);
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: #222a23;
+  color: var(--text);
+  min-height: 2.35rem;
+  padding: 0 0.85rem;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 2.35rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #111711;
+  color: var(--text);
+  font: inherit;
+  padding: 0 0.7rem;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.shell {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.topbar,
+.sectionHeader,
+.dashboard {
+  display: flex;
+  gap: 20px;
+}
+
+.topbar {
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0 22px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 2.4rem;
+  line-height: 1.05;
+}
+
+h2 {
+  font-size: 1.08rem;
+}
+
+.tickPanel,
+.metric,
+.entity,
+.event {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(23, 29, 24, 0.9);
+}
+
+.tickPanel {
+  display: grid;
+  min-width: 108px;
+  padding: 12px;
+  text-align: right;
+}
+
+.tickPanel span,
+.metric span,
+.entity span,
+.event span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.tickPanel strong {
+  font-size: 1.6rem;
+}
+
+.dashboard {
+  align-items: stretch;
+}
+
+.mapArea {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sectionHeader {
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.compactActions,
+.adminGrid {
+  display: flex;
+  gap: 8px;
+}
+
+.worldGrid {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--line);
+  background: #0b110f;
+  overflow: hidden;
+}
+
+.tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.035);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+}
+
+.tile span {
+  position: absolute;
+  inset: 25%;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.tileForest {
+  background: #1f6f43;
+}
+
+.tilePlains {
+  background: #587f3d;
+}
+
+.tileMountain {
+  background: #69716d;
+}
+
+.tileWater {
+  background: #1d5f7a;
+}
+
+.tileRuins {
+  background: #77624b;
+}
+
+.tileSwamp {
+  background: #3e6045;
+}
+
+.tileDesert {
+  background: #9a8545;
+}
+
+.sidePanel {
+  flex: 0 0 360px;
+  display: grid;
+  gap: 18px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metric {
+  display: grid;
+  gap: 5px;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.metric strong {
+  font-size: 1.24rem;
+}
+
+.entityList,
+.eventList {
+  display: grid;
+  gap: 8px;
+}
+
+.entity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.entity div {
+  display: grid;
+  gap: 3px;
+}
+
+.entityStats {
+  text-align: right;
+}
+
+.adminGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.adminPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.adminPanel label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.eventBand {
+  margin-top: 24px;
+}
+
+.event {
+  display: grid;
+  grid-template-columns: 72px minmax(140px, 220px) 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+.event p {
+  color: var(--muted);
+}
+
+@media (max-width: 980px) {
+  .dashboard {
+    display: grid;
+  }
+
+  .sidePanel {
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .topbar,
+  .sectionHeader {
+    align-items: stretch;
+    display: grid;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  .worldGrid {
+    aspect-ratio: 1 / 1;
+  }
+
+  .metricGrid,
+  .adminGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .event {
+    grid-template-columns: 1fr;
+  }
+}

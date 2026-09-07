@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SQLive Local</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">SQL Server local</p>
+          <h1 id="worldName">SQLive</h1>
+        </div>
+        <div class="status">
+          <span id="connectionState">conectando...</span>
+          <strong>Tick <output id="tickNo">-</output></strong>
+        </div>
+      </header>
+
+      <section class="toolbar" aria-label="Controles da simulacao">
+        <button id="refreshButton" type="button">Atualizar</button>
+        <button id="tickOneButton" type="button">Rodar 1 tick</button>
+        <button id="tickTenButton" type="button">Rodar 10 ticks</button>
+        <button id="tickAutoButton" type="button">Atualizar mundo sozinho</button>
+        <label>
+          <input id="autoRefresh" type="checkbox" />
+          atualizar sozinho
+        </label>
+        <span id="autoTickCountdown" aria-live="polite">Próxima atualização em 15s</span>
+      </section>
+
+      <div class="intervalSelector" aria-label="Intervalo da atualização automática">
+        <span>Intervalo:</span>
+        <div class="intervalOptions">
+          <button class="intervalButton" type="button" data-seconds="1">1s</button>
+          <button class="intervalButton" type="button" data-seconds="5">5s</button>
+          <button class="intervalButton" type="button" data-seconds="10">10s</button>
+          <button class="intervalButton" type="button" data-seconds="15">15s</button>
+          <button class="intervalButton" type="button" data-seconds="30">30s</button>
+        </div>
+      </div>
+
+      <section class="summary" aria-label="Metricas">
+        <article>
+          <span>Populacao</span>
+          <strong id="population">-</strong>
+        </article>
+        <article>
+          <span>Recursos</span>
+          <strong id="resourceCount">-</strong>
+        </article>
+        <article>
+          <span>Energia media</span>
+          <strong id="avgEnergy">-</strong>
+        </article>
+        <article>
+          <span>Geracao media</span>
+          <strong id="avgGeneration">-</strong>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <section class="mapPanel" aria-label="Mapa do mundo">
+          <div class="sectionTitle">
+            <h2>Mapa</h2>
+            <span id="worldSize">-</span>
+          </div>
+          <div id="worldGrid" class="worldGrid" role="img" aria-label="Grade do mundo SQLive"></div>
+          <div class="legend" aria-label="Legenda">
+            <span><i class="organismSample"></i> organismo</span>
+            <span><i class="resourceSample"></i> recurso</span>
+            <span><i class="bothSample"></i> ambos</span>
+          </div>
+        </section>
+
+        <aside class="sidePanel">
+          <section>
+            <div class="sectionTitle">
+              <h2>Organismos vivos</h2>
+              <span id="entityCount">-</span>
+            </div>
+            <div id="organismList" class="list"></div>
+          </section>
+
+          <section>
+            <div class="sectionTitle">
+              <h2>Eventos recentes</h2>
+            </div>
+            <div id="eventList" class="list compact"></div>
+          </section>
+        </aside>
+      </section>
+
+      <p id="errorBox" class="errorBox" hidden></p>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
