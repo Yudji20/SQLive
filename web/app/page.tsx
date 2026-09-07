@@ -12,12 +12,15 @@ const terrainClass: Record<string, string> = {
   desert: "tileDesert",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const world = await getWorldSnapshotData();
+  const worldSlug = process.env.SQLIVE_WORLD_SLUG ?? "eldergrove";
 
   return (
     <main className="shell">
-      <RealtimeBridge worldSlug="eldergrove" />
+      <RealtimeBridge worldSlug={worldSlug} />
       <section className="topbar" aria-label="World status">
         <div>
           <p className="eyebrow">SQLive cloud prototype</p>
@@ -92,6 +95,9 @@ export default async function Home() {
                   <div className="entityStats">
                     <span>G{entity.generation}</span>
                     <span>{entity.energy} EN</span>
+                    <span>SPD {entity.speed}</span>
+                    <span>STR {entity.strength}</span>
+                    <span>MASS {entity.mass}</span>
                   </div>
                 </article>
               ))}
@@ -113,7 +119,8 @@ export default async function Home() {
               </div>
               <label>
                 Species
-                <select name="species_key" defaultValue="mossling">
+                <select name="species_key" defaultValue="sqlife">
+                  <option value="sqlife">SQLife Organism</option>
                   <option value="mossling">Mossling</option>
                   <option value="ash_wolf">Ash Wolf</option>
                   <option value="glimmer_sprite">Glimmer Sprite</option>

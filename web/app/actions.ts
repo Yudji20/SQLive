@@ -11,7 +11,7 @@ export async function createAdminAction(formData: FormData) {
   const payload =
     actionType === "spawn_entity"
       ? {
-          species_key: String(formData.get("species_key") ?? "mossling"),
+          species_key: String(formData.get("species_key") ?? "sqlife"),
           faction_key: String(formData.get("faction_key") ?? "wild"),
           x,
           y,
@@ -54,4 +54,3 @@ export async function createAdminAction(formData: FormData) {
 
   revalidatePath("/");
 }
-

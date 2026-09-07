@@ -23,6 +23,9 @@ type DbEntity = {
   x: number;
   y: number;
   energy: number;
+  gene_speed: number;
+  gene_strength: number;
+  gene_mass: number;
   species: {
     name: string;
   } | null;
@@ -43,6 +46,8 @@ type DbMetric = {
   avg_generation: number | null;
   avg_gene_speed: number | null;
   avg_gene_metabolism: number | null;
+  avg_gene_strength: number | null;
+  avg_gene_mass: number | null;
 };
 
 function hasSupabaseConfig() {
@@ -87,7 +92,7 @@ export async function getWorldSnapshotData() {
       .returns<DbTile[]>(),
     supabase
       .from("entities")
-      .select("id, name, generation, x, y, energy, species:species_id(name)")
+      .select("id, name, generation, x, y, energy, gene_speed, gene_strength, gene_mass, species:species_id(name)")
       .eq("world_id", world.id)
       .eq("alive", true)
       .order("generation", { ascending: false })
@@ -104,7 +109,7 @@ export async function getWorldSnapshotData() {
     supabase
       .from("world_metrics")
       .select(
-        "population, alive_entities, resource_total, avg_energy, avg_generation, avg_gene_speed, avg_gene_metabolism",
+        "population, alive_entities, resource_total, avg_energy, avg_generation, avg_gene_speed, avg_gene_metabolism, avg_gene_strength, avg_gene_mass",
       )
       .eq("world_id", world.id)
       .order("tick_no", { ascending: false })
@@ -134,6 +139,9 @@ export async function getWorldSnapshotData() {
       species: entity.species?.name ?? "Unknown",
       generation: entity.generation,
       energy: Number(entity.energy.toFixed(0)),
+      speed: Number(entity.gene_speed.toFixed(2)),
+      strength: Number(entity.gene_strength.toFixed(2)),
+      mass: Number(entity.gene_mass.toFixed(2)),
       x: entity.x,
       y: entity.y,
     })),
@@ -150,6 +158,8 @@ export async function getWorldSnapshotData() {
       { label: "Resources", value: formatNumber(metric?.resource_total, 0) },
       { label: "Avg speed", value: formatNumber(metric?.avg_gene_speed, 2) },
       { label: "Avg metabolism", value: formatNumber(metric?.avg_gene_metabolism, 2) },
+      { label: "Avg strength", value: formatNumber(metric?.avg_gene_strength, 2) },
+      { label: "Avg mass", value: formatNumber(metric?.avg_gene_mass, 2) },
     ],
   };
 }
@@ -204,5 +214,79 @@ export async function executeWorldTick(ticks = 1) {
       tickNo: executedTicks.at(-1),
     },
     executedTicks,
+  };
+}
+
+type ResetWorldInput = {
+  slug?: string;
+  name?: string;
+  width?: number;
+  height?: number;
+  initial_entities?: number;
+  initial_organisms?: number;
+  initial_resources?: number;
+  food_energy?: number;
+  food_sense_radius?: number;
+  mutation_rate?: number;
+  mutation_strength?: number;
+  min_reproduction_age?: number;
+  max_age?: number;
+  visibility?: string;
+};
+
+function numberOrDefault(value: unknown, fallback: number) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function stringOrDefault(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+export async function resetWorld(input: ResetWorldInput = {}) {
+  const slug = stringOrDefault(input.slug, process.env.SQLIVE_WORLD_SLUG ?? "eldergrove");
+  const name = stringOrDefault(input.name, "SQLife cloud experiment");
+
+  if (!hasSupabaseConfig()) {
+    return {
+      ok: true,
+      mode: "mock",
+      world: {
+        id: 0,
+        slug,
+        name,
+      },
+    };
+  }
+
+  const supabase = createSupabaseAdminClient().schema("alife");
+  const { data, error } = await supabase.rpc("reset_world", {
+    p_slug: slug,
+    p_name: name,
+    p_width: numberOrDefault(input.width, 60),
+    p_height: numberOrDefault(input.height, 60),
+    p_initial_entities: numberOrDefault(input.initial_entities ?? input.initial_organisms, 80),
+    p_initial_resources: numberOrDefault(input.initial_resources, 350),
+    p_food_energy: numberOrDefault(input.food_energy, 10.0),
+    p_food_sense_radius: numberOrDefault(input.food_sense_radius, 6),
+    p_mutation_rate: numberOrDefault(input.mutation_rate, 0.08),
+    p_mutation_strength: numberOrDefault(input.mutation_strength, 0.12),
+    p_min_reproduction_age: numberOrDefault(input.min_reproduction_age, 20),
+    p_max_age: numberOrDefault(input.max_age, 220),
+    p_visibility: stringOrDefault(input.visibility, "public"),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    ok: true,
+    mode: "supabase",
+    world: {
+      id: data as number,
+      slug,
+      name,
+    },
   };
 }

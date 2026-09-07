@@ -12,6 +12,9 @@ type Entity = {
   species: string;
   generation: number;
   energy: number;
+  speed: number;
+  strength: number;
+  mass: number;
   x: number;
   y: number;
 };
@@ -49,11 +52,11 @@ export async function getWorldSnapshot() {
   }
 
   const entities: Entity[] = [
-    { id: 101, name: "Mossling 101", species: "Mossling", generation: 8, energy: 31, x: 8, y: 6 },
-    { id: 144, name: "Ash Wolf 144", species: "Ash Wolf", generation: 5, energy: 42, x: 19, y: 9 },
-    { id: 177, name: "Glimmer Sprite 177", species: "Glimmer Sprite", generation: 11, energy: 28, x: 24, y: 13 },
-    { id: 203, name: "Mossling 203", species: "Mossling", generation: 12, energy: 35, x: 12, y: 15 },
-    { id: 231, name: "Ash Wolf 231", species: "Ash Wolf", generation: 6, energy: 39, x: 27, y: 5 },
+    { id: 101, name: "Mossling 101", species: "Mossling", generation: 8, energy: 31, speed: 2.9, strength: 2.2, mass: 1.8, x: 8, y: 6 },
+    { id: 144, name: "Ash Wolf 144", species: "Ash Wolf", generation: 5, energy: 42, speed: 2.1, strength: 3.4, mass: 2.6, x: 19, y: 9 },
+    { id: 177, name: "Glimmer Sprite 177", species: "Glimmer Sprite", generation: 11, energy: 28, speed: 3.8, strength: 1.5, mass: 1.1, x: 24, y: 13 },
+    { id: 203, name: "Mossling 203", species: "Mossling", generation: 12, energy: 35, speed: 3.1, strength: 2.8, mass: 2.0, x: 12, y: 15 },
+    { id: 231, name: "Ash Wolf 231", species: "Ash Wolf", generation: 6, energy: 39, speed: 1.9, strength: 4.0, mass: 3.1, x: 27, y: 5 },
   ];
 
   const events: Event[] = [
@@ -92,7 +95,8 @@ export async function getWorldSnapshot() {
       { label: "Resources", value: "350" },
       { label: "Avg speed", value: "3.55" },
       { label: "Avg metabolism", value: "0.60" },
+      { label: "Avg strength", value: "2.74" },
+      { label: "Avg mass", value: "2.12" },
     ],
   };
 }
-
