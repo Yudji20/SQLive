@@ -1,14 +1,17 @@
 :root {
-  color-scheme: dark;
-  --bg: #101411;
-  --panel: #171d18;
-  --panel-2: #20271f;
-  --line: #334037;
-  --text: #eef4eb;
-  --muted: #9eaa9b;
-  --accent: #d6b25e;
-  --accent-2: #86d79b;
-  --danger: #d67568;
+  color-scheme: light;
+  --bg: #f5f6f3;
+  --panel: #ffffff;
+  --panel-soft: #eef1ec;
+  --text: #1f241f;
+  --muted: #667064;
+  --line: #d8ded4;
+  --accent: #286c57;
+  --accent-strong: #174f3f;
+  --food: #d5a73a;
+  --life: #2d7560;
+  --both: #2d4f85;
+  --danger: #9c2f2f;
 }
 
 * {
@@ -17,68 +20,48 @@
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(134, 215, 155, 0.12), transparent 26rem),
-    linear-gradient(135deg, #0f1615 0%, #151811 48%, #11181a 100%);
+  min-height: 100vh;
+  background: var(--bg);
   color: var(--text);
   font-family:
-    Arial,
-    Helvetica,
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
 }
 
-button {
-  border: 1px solid var(--line);
-  background: #222a23;
-  color: var(--text);
-  min-height: 2.35rem;
-  padding: 0 0.85rem;
-  border-radius: 6px;
+button,
+input {
   font: inherit;
+}
+
+button {
+  min-height: 38px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 0 14px;
   cursor: pointer;
 }
 
-input,
-select {
-  width: 100%;
-  min-height: 2.35rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #111711;
-  color: var(--text);
-  font: inherit;
-  padding: 0 0.7rem;
-}
-
 button:hover {
-  border-color: var(--accent);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
-.shell {
-  width: min(1440px, 100%);
-  margin: 0 auto;
-  padding: 24px;
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
-.topbar,
-.sectionHeader,
-.dashboard {
-  display: flex;
-  gap: 20px;
-}
-
-.topbar {
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 0 22px;
-}
-
-.eyebrow {
-  margin: 0 0 6px;
-  color: var(--accent);
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-transform: uppercase;
+button[aria-pressed="true"],
+.isSelected {
+  background: var(--text);
+  border-color: var(--text);
 }
 
 h1,
@@ -88,235 +71,362 @@ p {
 }
 
 h1 {
-  font-size: 2.4rem;
+  font-size: 2.15rem;
   line-height: 1.05;
 }
 
 h2 {
-  font-size: 1.08rem;
+  font-size: 1rem;
 }
 
-.tickPanel,
-.metric,
-.entity,
-.event {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(23, 29, 24, 0.9);
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
 }
 
-.tickPanel {
-  display: grid;
-  min-width: 108px;
-  padding: 12px;
+th,
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
   text-align: right;
+  white-space: nowrap;
 }
 
-.tickPanel span,
-.metric span,
-.entity span,
-.event span {
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+th {
   color: var(--muted);
   font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.tickPanel strong {
-  font-size: 1.6rem;
+.app {
+  width: min(1380px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 36px;
 }
 
-.dashboard {
-  align-items: stretch;
+.topbar,
+.toolbar,
+.summary,
+.workspace {
+  display: grid;
+  gap: 16px;
 }
 
-.mapArea {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.sectionHeader {
+.topbar {
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.subtle,
+.summary span,
+.sectionTitle p,
+.sectionTitle span,
+.organismRow p,
+.eventRow p,
+.countdown {
+  color: var(--muted);
+}
+
+.subtle {
+  margin-top: 6px;
+}
+
+.status {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+
+.status span {
+  color: var(--muted);
+}
+
+.status strong {
+  font-size: 1.2rem;
+}
+
+.toolbar {
+  grid-template-columns: repeat(4, max-content) max-content minmax(180px, 1fr);
+  align-items: center;
+  margin: 18px 0 10px;
+}
+
+.checkControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.checkControl input {
+  width: 16px;
+  height: 16px;
+}
+
+.intervalSelector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  color: var(--muted);
+}
+
+.intervalOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.intervalOptions button {
+  min-width: 52px;
+  border-color: var(--line);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.intervalOptions button:hover,
+.intervalOptions button.isSelected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.summary {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.summary article,
+.mapPanel,
+.sidePanel section,
+.dataPanel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.summary article {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.summary strong {
+  overflow-wrap: anywhere;
+  font-size: 1.25rem;
+}
+
+.workspace {
+  grid-template-columns: minmax(0, 1fr) 390px;
+  align-items: start;
+}
+
+.mapPanel,
+.sidePanel section,
+.dataPanel {
+  padding: 16px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: start;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
-.compactActions,
-.adminGrid {
-  display: flex;
-  gap: 8px;
+.sectionTitle div {
+  display: grid;
+  gap: 3px;
 }
 
 .worldGrid {
   display: grid;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  border: 1px solid var(--line);
-  background: #0b110f;
+  aspect-ratio: 1;
   overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
 }
 
 .tile {
-  position: relative;
   min-width: 0;
   min-height: 0;
-  border-right: 1px solid rgba(255, 255, 255, 0.035);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  border-right: 1px solid rgba(40, 108, 87, 0.035);
+  border-bottom: 1px solid rgba(40, 108, 87, 0.035);
+  background: #e8ede5;
 }
 
-.tile span {
-  position: absolute;
-  inset: 25%;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+.tile.resource {
+  background: var(--food);
 }
 
-.tileForest {
-  background: #1f6f43;
+.tile.organism {
+  background: var(--life);
 }
 
-.tilePlains {
-  background: #587f3d;
+.tile.both {
+  background: var(--both);
 }
 
-.tileMountain {
-  background: #69716d;
-}
-
-.tileWater {
-  background: #1d5f7a;
-}
-
-.tileRuins {
-  background: #77624b;
-}
-
-.tileSwamp {
-  background: #3e6045;
-}
-
-.tileDesert {
-  background: #9a8545;
-}
-
-.sidePanel {
-  flex: 0 0 360px;
-  display: grid;
-  gap: 18px;
-}
-
-.metricGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.metric {
-  display: grid;
-  gap: 5px;
-  min-height: 72px;
-  padding: 12px;
-}
-
-.metric strong {
-  font-size: 1.24rem;
-}
-
-.entityList,
-.eventList {
-  display: grid;
-  gap: 8px;
-}
-
-.entity {
+.legend {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
-.entity div {
-  display: grid;
-  gap: 3px;
+.legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
 }
 
-.entityStats {
-  text-align: right;
+.organismSample {
+  background: var(--life);
 }
 
-.adminGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.resourceSample {
+  background: var(--food);
 }
 
-.adminPanel {
+.bothSample {
+  background: var(--both);
+}
+
+.sidePanel,
+.organismList,
+.eventList {
   display: grid;
   gap: 10px;
 }
 
-.adminPanel label {
-  display: grid;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 0.8rem;
+.organismList,
+.eventList {
+  max-height: 430px;
+  overflow: auto;
 }
 
-.fieldRow {
+.organismRow,
+.eventRow {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--panel-soft);
 }
 
-.eventBand {
-  margin-top: 24px;
-}
-
-.event {
-  display: grid;
-  grid-template-columns: 72px minmax(140px, 220px) 1fr;
-  gap: 12px;
+.rowTop,
+.geneLine {
+  display: flex;
   align-items: center;
-  padding: 12px;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.event p {
+.rowTop strong {
+  overflow-wrap: anywhere;
+}
+
+.rowTop span,
+.geneLine span {
   color: var(--muted);
+  font-size: 0.82rem;
 }
 
-@media (max-width: 980px) {
-  .dashboard {
-    display: grid;
+.geneLine {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.geneLine span {
+  min-width: 58px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.dataPanel {
+  margin-top: 18px;
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.errorBox {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid rgba(156, 47, 47, 0.35);
+  border-radius: 8px;
+  background: rgba(156, 47, 47, 0.08);
+  color: var(--danger);
+}
+
+@media (max-width: 1120px) {
+  .summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .sidePanel {
-    flex-basis: auto;
+  .workspace {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 620px) {
-  .shell {
-    padding: 16px;
+@media (max-width: 720px) {
+  .app {
+    width: min(100% - 20px, 1380px);
+    padding-top: 16px;
   }
 
   .topbar,
-  .sectionHeader {
-    align-items: stretch;
-    display: grid;
+  .toolbar,
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .status {
+    justify-items: start;
   }
 
   h1 {
-    font-size: 1.8rem;
+    font-size: 1.75rem;
   }
 
-  .worldGrid {
-    aspect-ratio: 1 / 1;
+  .toolbar button,
+  .toolbar .checkControl {
+    width: 100%;
   }
 
-  .metricGrid,
-  .adminGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .event {
-    grid-template-columns: 1fr;
+  .intervalSelector {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
