@@ -305,14 +305,31 @@ export function SqliveDashboard() {
     return organisms.slice(0, take);
   }, [world?.entities]);
   const fastestPoints = useMemo(() => new Set(fastestOrganisms.map(pointKey)), [fastestOrganisms]);
+  const strongestOrganisms = useMemo(() => {
+    const organisms = [...(world?.entities ?? [])].sort(
+      (left, right) => organismStrength(right) - organismStrength(left),
+    );
+    const take = Math.max(1, Math.ceil(organisms.length * 0.25));
+
+    return organisms.slice(0, take);
+  }, [world?.entities]);
+  const strongestPoints = useMemo(() => new Set(strongestOrganisms.map(pointKey)), [strongestOrganisms]);
   const spatialBands = useMemo(() => buildSpatialBands(world), [world]);
   const fastAvgX = average(fastestOrganisms.map((organism) => organism.x));
   const fastAvgY = average(fastestOrganisms.map((organism) => organism.y));
+  const strongAvgX = average(strongestOrganisms.map((organism) => organism.x));
+  const strongAvgY = average(strongestOrganisms.map((organism) => organism.y));
   const speedXCorrelation = correlation(world?.entities ?? [], organismSpeed, (organism) => organism.x);
   const speedYCorrelation = correlation(world?.entities ?? [], organismSpeed, (organism) => organism.y);
+  const strengthXCorrelation = correlation(world?.entities ?? [], organismStrength, (organism) => organism.x);
+  const strengthYCorrelation = correlation(world?.entities ?? [], organismStrength, (organism) => organism.y);
   const fastestQuadrant =
     fastestOrganisms.length > 0 && world
       ? dominantQuadrant(fastestOrganisms, world.width, world.height)
+      : "-";
+  const strongestQuadrant =
+    strongestOrganisms.length > 0 && world
+      ? dominantQuadrant(strongestOrganisms, world.width, world.height)
       : "-";
   const metricHistory = world?.raw?.metrics ?? [];
 
@@ -432,6 +449,7 @@ export function SqliveDashboard() {
               const hasOrganism = organismPoints.has(key);
               const hasResource = resourcePoints.has(key);
               const hasFastOrganism = fastestPoints.has(key);
+              const hasStrongOrganism = strongestPoints.has(key);
 
               return (
                 <span
@@ -441,6 +459,8 @@ export function SqliveDashboard() {
                     hasResource ? "resource" : "",
                     hasOrganism && hasResource ? "both" : "",
                     hasFastOrganism ? "fastOrganism" : "",
+                    hasStrongOrganism ? "strongOrganism" : "",
+                    hasFastOrganism && hasStrongOrganism ? "fastStrongOrganism" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -455,6 +475,8 @@ export function SqliveDashboard() {
             <span><i className="resourceSample" /> recurso</span>
             <span><i className="bothSample" /> disputa/comida</span>
             <span><i className="fastSample" /> top 25% velocidade</span>
+            <span><i className="strongSample" /> top 25% forca</span>
+            <span><i className="fastStrongSample" /> velocidade + forca</span>
           </div>
         </section>
 
@@ -511,7 +533,7 @@ export function SqliveDashboard() {
             <h2>Leitura emergente</h2>
             <p>Primeira camada para observar agrupamento espacial dos genes.</p>
           </div>
-          <span>top 25% por velocidade</span>
+          <span>top 25% por velocidade e forca</span>
         </div>
 
         <div className="insightGrid">
@@ -530,6 +552,22 @@ export function SqliveDashboard() {
           <article>
             <span>Correlacao velocidade x Y</span>
             <strong>{formatMetricNumber(speedYCorrelation, 3)}</strong>
+          </article>
+          <article>
+            <span>Centro dos mais fortes</span>
+            <strong>x {formatMetricNumber(strongAvgX, 1)} · y {formatMetricNumber(strongAvgY, 1)}</strong>
+          </article>
+          <article>
+            <span>Quadrante forca</span>
+            <strong>{strongestQuadrant}</strong>
+          </article>
+          <article>
+            <span>Correlacao forca x X</span>
+            <strong>{formatMetricNumber(strengthXCorrelation, 3)}</strong>
+          </article>
+          <article>
+            <span>Correlacao forca x Y</span>
+            <strong>{formatMetricNumber(strengthYCorrelation, 3)}</strong>
           </article>
         </div>
 

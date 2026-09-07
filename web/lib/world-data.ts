@@ -127,7 +127,7 @@ export async function getWorldSnapshotData() {
       .eq("alive", true)
       .order("generation", { ascending: false })
       .order("energy", { ascending: false })
-      .limit(200)
+      .limit(1000)
       .returns<DbEntity[]>(),
     supabase
       .from("species")

@@ -11,6 +11,8 @@
   --food: #d5a73a;
   --life: #2d7560;
   --fast: #2f78bd;
+  --strong: #b45245;
+  --fast-strong: #5f4aa2;
   --both: #2d4f85;
   --danger: #9c2f2f;
 }
@@ -294,6 +296,16 @@ th {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
+.tile.strongOrganism {
+  background: var(--strong);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.tile.fastStrongOrganism {
+  background: var(--fast-strong);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -326,6 +338,14 @@ th {
 
 .fastSample {
   background: var(--fast);
+}
+
+.strongSample {
+  background: var(--strong);
+}
+
+.fastStrongSample {
+  background: var(--fast-strong);
 }
 
 .sidePanel,
