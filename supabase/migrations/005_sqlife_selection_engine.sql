@@ -78,6 +78,14 @@ alter table alife.entity_history enable row level security;
 
 grant select on alife.entity_history to anon, authenticated;
 grant usage, select on all sequences in schema alife to authenticated;
+grant usage on schema alife to service_role;
+grant all privileges on all tables in schema alife to service_role;
+grant all privileges on all sequences in schema alife to service_role;
+grant execute on all functions in schema alife to service_role;
+
+alter default privileges in schema alife grant all privileges on tables to service_role;
+alter default privileges in schema alife grant all privileges on sequences to service_role;
+alter default privileges in schema alife grant execute on functions to service_role;
 
 drop policy if exists entity_history_public_select on alife.entity_history;
 create policy entity_history_public_select

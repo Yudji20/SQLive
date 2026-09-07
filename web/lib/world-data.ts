@@ -18,6 +18,7 @@ type DbTile = {
 
 type DbEntity = {
   id: number;
+  species_id: number;
   name: string | null;
   generation: number;
   x: number;
@@ -26,9 +27,6 @@ type DbEntity = {
   gene_speed: number;
   gene_strength: number;
   gene_mass: number;
-  species: {
-    name: string;
-  } | null;
 };
 
 type DbEvent = {
@@ -48,6 +46,11 @@ type DbMetric = {
   avg_gene_metabolism: number | null;
   avg_gene_strength: number | null;
   avg_gene_mass: number | null;
+};
+
+type DbSpecies = {
+  id: number;
+  name: string;
 };
 
 function hasSupabaseConfig() {
@@ -82,7 +85,7 @@ export async function getWorldSnapshotData() {
     return getWorldSnapshot();
   }
 
-  const [tilesResult, entitiesResult, eventsResult, metricsResult] = await Promise.all([
+  const [tilesResult, entitiesResult, speciesResult, eventsResult, metricsResult] = await Promise.all([
     supabase
       .from("tiles")
       .select("x, y, terrain_type")
@@ -92,12 +95,17 @@ export async function getWorldSnapshotData() {
       .returns<DbTile[]>(),
     supabase
       .from("entities")
-      .select("id, name, generation, x, y, energy, gene_speed, gene_strength, gene_mass, species:species_id(name)")
+      .select("id, species_id, name, generation, x, y, energy, gene_speed, gene_strength, gene_mass")
       .eq("world_id", world.id)
       .eq("alive", true)
       .order("generation", { ascending: false })
       .limit(20)
       .returns<DbEntity[]>(),
+    supabase
+      .from("species")
+      .select("id, name")
+      .eq("world_id", world.id)
+      .returns<DbSpecies[]>(),
     supabase
       .from("event_log")
       .select("id, tick_no, title, description")
@@ -117,11 +125,14 @@ export async function getWorldSnapshotData() {
       .maybeSingle<DbMetric>(),
   ]);
 
-  if (tilesResult.error || entitiesResult.error || eventsResult.error) {
+  if (tilesResult.error || entitiesResult.error || speciesResult.error || eventsResult.error) {
     return getWorldSnapshot();
   }
 
   const metric = metricsResult.data;
+  const speciesById = new Map(
+    (speciesResult.data ?? []).map((species) => [species.id, species.name]),
+  );
 
   return {
     name: world.name,
@@ -136,7 +147,7 @@ export async function getWorldSnapshotData() {
     entities: (entitiesResult.data ?? []).map((entity) => ({
       id: entity.id,
       name: entity.name ?? `Entity ${entity.id}`,
-      species: entity.species?.name ?? "Unknown",
+      species: speciesById.get(entity.species_id) ?? "Unknown",
       generation: entity.generation,
       energy: Number(entity.energy.toFixed(0)),
       speed: Number(entity.gene_speed.toFixed(2)),
