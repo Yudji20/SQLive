@@ -10,12 +10,6 @@ type DbWorld = {
   tick_no: number;
 };
 
-type DbTile = {
-  x: number;
-  y: number;
-  terrain_type: string;
-};
-
 type DbEntity = {
   id: number;
   parent_entity_id: number | null;
@@ -110,14 +104,7 @@ export async function getWorldSnapshotData() {
     return getWorldSnapshot();
   }
 
-  const [tilesResult, entitiesResult, speciesResult, eventsResult, metricsResult] = await Promise.all([
-    supabase
-      .from("tiles")
-      .select("x, y, terrain_type")
-      .eq("world_id", world.id)
-      .order("y", { ascending: true })
-      .order("x", { ascending: true })
-      .returns<DbTile[]>(),
+  const [entitiesResult, speciesResult, eventsResult, metricsResult] = await Promise.all([
     supabase
       .from("entities")
       .select(
@@ -153,7 +140,7 @@ export async function getWorldSnapshotData() {
       .maybeSingle<DbMetric>(),
   ]);
 
-  if (tilesResult.error || entitiesResult.error || speciesResult.error || eventsResult.error) {
+  if (entitiesResult.error || speciesResult.error || eventsResult.error) {
     return getWorldSnapshot();
   }
 
@@ -192,11 +179,7 @@ export async function getWorldSnapshotData() {
     tickNo: world.tick_no,
     width: world.width,
     height: world.height,
-    tiles: (tilesResult.data ?? []).map((tile) => ({
-      x: tile.x,
-      y: tile.y,
-      terrain: tile.terrain_type,
-    })),
+    tiles: [],
     entities: (entitiesResult.data ?? []).map((entity) => ({
       id: entity.id,
       parentId: entity.parent_entity_id,
