@@ -16,6 +16,7 @@ type DbEntity = {
   species_id: number;
   name: string | null;
   generation: number;
+  alive?: boolean;
   x: number;
   y: number;
   energy: number;
@@ -27,6 +28,7 @@ type DbEntity = {
   gene_strength: number;
   gene_mass: number;
   born_tick: number;
+  died_tick?: number | null;
 };
 
 type DbEvent = {
@@ -144,7 +146,7 @@ export async function getWorldSnapshotData() {
     return getWorldSnapshot();
   }
 
-  const [resourcesResult, metricHistoryResult] = await Promise.all([
+  const [resourcesResult, metricHistoryResult, lineageResult] = await Promise.all([
     supabase
       .from("resources")
       .select("id, x, y, resource_key, amount, capacity, regen_rate")
@@ -162,6 +164,16 @@ export async function getWorldSnapshotData() {
       .order("tick_no", { ascending: false })
       .limit(50)
       .returns<DbMetricPoint[]>(),
+    supabase
+      .from("entities")
+      .select(
+        "id, parent_entity_id, species_id, name, generation, alive, x, y, energy, health, age, born_tick, died_tick",
+      )
+      .eq("world_id", world.id)
+      .order("generation", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(5000)
+      .returns<DbEntity[]>(),
   ]);
 
   const metric = metricsResult.data;
@@ -235,11 +247,27 @@ export async function getWorldSnapshotData() {
     raw: {
       simulation: world,
       metrics: metricHistory,
+      lineageEntities: (lineageResult.data ?? []).map((entity) => ({
+        id: entity.id,
+        parentId: entity.parent_entity_id,
+        name: entity.name ?? `Entity ${entity.id}`,
+        species: speciesById.get(entity.species_id) ?? "Unknown",
+        generation: entity.generation,
+        alive: Boolean(entity.alive),
+        energy: Number(entity.energy.toFixed(0)),
+        health: Number(entity.health.toFixed(0)),
+        age: entity.age,
+        bornTick: entity.born_tick,
+        diedTick: entity.died_tick ?? null,
+        x: entity.x,
+        y: entity.y,
+      })),
       resourcesCount: resources.length,
       organismsCount: entitiesResult.data?.length ?? 0,
       errors: {
         resources: resourcesResult.error?.message,
         metricHistory: metricHistoryResult.error?.message,
+        lineage: lineageResult.error?.message,
       },
     },
   };

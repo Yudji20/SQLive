@@ -8,6 +8,7 @@ type Tile = {
 
 type Entity = {
   id: number;
+  parentId?: number | null;
   name: string;
   species: string;
   generation: number;
@@ -118,6 +119,21 @@ export async function getWorldSnapshot() {
     ],
     raw: {
       metrics: [],
+      lineageEntities: entities.map((entity) => ({
+        id: entity.id,
+        parentId: entity.parentId ?? null,
+        name: entity.name,
+        species: entity.species,
+        generation: entity.generation,
+        alive: true,
+        energy: entity.energy,
+        health: entity.health,
+        age: entity.age,
+        bornTick: 0,
+        diedTick: null,
+        x: entity.x,
+        y: entity.y,
+      })),
       resourcesCount: 3,
       organismsCount: entities.length,
     },

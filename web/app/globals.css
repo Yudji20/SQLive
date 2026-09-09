@@ -306,6 +306,14 @@ th {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.85);
 }
 
+.tile.followedOrganism {
+  outline: 2px solid #111111;
+  outline-offset: -2px;
+  box-shadow:
+    inset 0 0 0 2px #ffffff,
+    0 0 0 1px rgba(17, 17, 17, 0.35);
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -348,6 +356,11 @@ th {
   background: var(--fast-strong);
 }
 
+.followedSample {
+  border: 2px solid #111111;
+  background: #ffffff;
+}
+
 .sidePanel,
 .organismList,
 .eventList {
@@ -368,6 +381,79 @@ th {
   padding: 10px;
   border-radius: 6px;
   background: var(--panel-soft);
+}
+
+.organismRow.isFollowedRow {
+  border: 1px solid var(--text);
+  background: #ffffff;
+}
+
+.trackedPanel {
+  display: grid;
+  gap: 10px;
+}
+
+.followNameEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.followNameEditor input {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 0 10px;
+}
+
+.trackedStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.trackedStats article {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+}
+
+.trackedStats span,
+.trackedNote,
+.emptyState {
+  color: var(--muted);
+}
+
+.trackedStats span {
+  font-size: 0.75rem;
+}
+
+.trackedStats strong {
+  overflow-wrap: anywhere;
+}
+
+.trackedNote,
+.emptyState {
+  line-height: 1.45;
+}
+
+.secondaryButton {
+  border-color: var(--line);
+  background: #ffffff;
+  color: var(--text);
+}
+
+.secondaryButton:hover {
+  border-color: var(--accent);
+  background: var(--panel-soft);
+  color: var(--text);
 }
 
 .rowTop,
@@ -511,8 +597,14 @@ th {
   }
 
   .toolbar button,
-  .toolbar .checkControl {
+  .toolbar .checkControl,
+  .followNameEditor,
+  .secondaryButton {
     width: 100%;
+  }
+
+  .trackedStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .intervalSelector {
