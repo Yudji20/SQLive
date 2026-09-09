@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Metric = {
   label: string;
@@ -113,6 +113,7 @@ type FollowedOrganism = {
 };
 
 type FollowedSubject = {
+  followed: FollowedOrganism;
   organism: Organism | LineageEntity | null;
   status: "none" | "alive" | "descendant" | "extinct";
   previous?: LineageEntity | null;
@@ -121,6 +122,7 @@ type FollowedSubject = {
 const intervalOptions = [1, 5, 10, 15, 30];
 const followedStorageKey = "sqlive-followed-organism";
 const followedCookieKey = "sqlive_followed_organism";
+const maxFollowedOrganisms = 5;
 
 function metricValue(world: WorldSnapshot | null, label: string) {
   return world?.metrics.find((metric) => metric.label === label)?.value ?? "-";
@@ -169,38 +171,51 @@ function formatMetricNumber(value: number, digits = 2) {
   return Number.isFinite(value) ? value.toFixed(digits) : "-";
 }
 
-function parseStoredFollowed(value: string | null) {
-  if (!value) {
+function normalizeFollowed(value: Partial<FollowedOrganism>) {
+  if (typeof value.rootId !== "number" || typeof value.currentId !== "number") {
     return null;
   }
 
-  const parsed = JSON.parse(value) as Partial<FollowedOrganism>;
-
-  if (typeof parsed.rootId !== "number" || typeof parsed.currentId !== "number") {
-    return null;
-  }
-
-  const displayName = typeof parsed.displayName === "string" && parsed.displayName.trim()
-    ? parsed.displayName.trim()
-    : `Linhagem #${parsed.rootId}`;
+  const displayName = typeof value.displayName === "string" && value.displayName.trim()
+    ? value.displayName.trim()
+    : `Linhagem #${value.rootId}`;
 
   return {
-    rootId: parsed.rootId,
-    currentId: parsed.currentId,
+    rootId: value.rootId,
+    currentId: value.currentId,
     displayName,
   };
 }
 
+function parseStoredFollowed(value: string | null) {
+  if (!value) {
+    return [];
+  }
+
+  const parsed = JSON.parse(value) as Partial<FollowedOrganism> | Partial<FollowedOrganism>[];
+
+  if (Array.isArray(parsed)) {
+    return parsed
+      .map(normalizeFollowed)
+      .filter((followed): followed is FollowedOrganism => Boolean(followed))
+      .slice(0, maxFollowedOrganisms);
+  }
+
+  const legacyFollowed = normalizeFollowed(parsed);
+
+  return legacyFollowed ? [legacyFollowed] : [];
+}
+
 function readFollowedPreference() {
   if (typeof window === "undefined") {
-    return null;
+    return [];
   }
 
   try {
     const stored = window.localStorage?.getItem(followedStorageKey);
     const parsed = parseStoredFollowed(stored);
 
-    if (parsed) {
+    if (parsed.length > 0) {
       return parsed;
     }
   } catch {
@@ -215,12 +230,12 @@ function readFollowedPreference() {
 
     return parseStoredFollowed(cookieValue ? decodeURIComponent(cookieValue) : null);
   } catch {
-    return null;
+    return [];
   }
 }
 
-function writeFollowedPreference(followed: FollowedOrganism) {
-  const serialized = JSON.stringify(followed);
+function writeFollowedPreference(followed: FollowedOrganism[]) {
+  const serialized = JSON.stringify(followed.slice(0, maxFollowedOrganisms));
 
   try {
     window.localStorage?.setItem(followedStorageKey, serialized);
@@ -307,15 +322,15 @@ function bestLivingDescendant(lineage: LineageEntity[], ancestorId: number) {
     })[0] ?? null;
 }
 
-function resolveFollowedSubject(world: WorldSnapshot | null, followed: FollowedOrganism | null): FollowedSubject {
-  if (!world || !followed) {
-    return { organism: null, status: "none" };
+function resolveFollowedSubject(world: WorldSnapshot | null, followed: FollowedOrganism): FollowedSubject {
+  if (!world) {
+    return { followed, organism: null, status: "none" };
   }
 
   const liveCurrent = world.entities.find((organism) => organism.id === followed.currentId);
 
   if (liveCurrent) {
-    return { organism: liveCurrent, status: "alive" };
+    return { followed, organism: liveCurrent, status: "alive" };
   }
 
   const lineage = readLineage(world);
@@ -324,10 +339,10 @@ function resolveFollowedSubject(world: WorldSnapshot | null, followed: FollowedO
   const descendant = bestLivingDescendant(lineage, followed.currentId) ?? bestLivingDescendant(lineage, followed.rootId);
 
   if (descendant) {
-    return { organism: descendant, status: "descendant", previous };
+    return { followed, organism: descendant, status: "descendant", previous };
   }
 
-  return { organism: previous, status: "extinct", previous };
+  return { followed, organism: previous, status: "extinct", previous };
 }
 
 function correlation(items: Organism[], readA: (organism: Organism) => number, readB: (organism: Organism) => number) {
@@ -407,8 +422,8 @@ export function SqliveDashboard() {
   const [autoTick, setAutoTick] = useState(false);
   const [intervalSeconds, setIntervalSeconds] = useState(15);
   const [countdown, setCountdown] = useState(15);
-  const [followed, setFollowed] = useState<FollowedOrganism | null>(null);
-  const [followName, setFollowName] = useState("");
+  const [followed, setFollowed] = useState<FollowedOrganism[]>([]);
+  const [followNotice, setFollowNotice] = useState<string | null>(null);
 
   const loadWorld = useCallback(async () => {
     setLoading(true);
@@ -464,14 +479,13 @@ export function SqliveDashboard() {
   useEffect(() => {
     const stored = readFollowedPreference();
 
-    if (stored) {
+    if (stored.length > 0) {
       setFollowed(stored);
-      setFollowName(stored.displayName);
     }
   }, []);
 
   useEffect(() => {
-    if (!followed) {
+    if (followed.length === 0) {
       clearFollowedPreference();
       return;
     }
@@ -512,9 +526,36 @@ export function SqliveDashboard() {
     [world?.resources],
   );
   const organismPoints = useMemo(() => new Set((world?.entities ?? []).map(pointKey)), [world?.entities]);
-  const followedSubject = useMemo(() => resolveFollowedSubject(world, followed), [world, followed]);
-  const followedOrganism = followedSubject.organism;
-  const followedPoint = followedOrganism && followedSubject.status !== "extinct" ? pointKey(followedOrganism) : null;
+  const organismsByPoint = useMemo(() => {
+    const byPoint = new Map<string, Organism[]>();
+
+    (world?.entities ?? []).forEach((organism) => {
+      const key = pointKey(organism);
+      byPoint.set(key, [...(byPoint.get(key) ?? []), organism]);
+    });
+
+    return byPoint;
+  }, [world?.entities]);
+  const followedSubjects = useMemo(
+    () => followed.map((item) => resolveFollowedSubject(world, item)),
+    [world, followed],
+  );
+  const followedPointKeys = useMemo(
+    () => new Set(
+      followedSubjects
+        .filter((subject) => subject.status !== "extinct" && subject.organism)
+        .map((subject) => pointKey(subject.organism as Organism | LineageEntity)),
+    ),
+    [followedSubjects],
+  );
+  const followedCurrentIds = useMemo(
+    () => new Set(
+      followedSubjects
+        .map((subject) => subject.organism?.id)
+        .filter((id): id is number => typeof id === "number"),
+    ),
+    [followedSubjects],
+  );
   const fastestOrganisms = useMemo(() => {
     const organisms = [...(world?.entities ?? [])].sort((left, right) => organismSpeed(right) - organismSpeed(left));
     const take = Math.max(1, Math.ceil(organisms.length * 0.25));
@@ -551,44 +592,107 @@ export function SqliveDashboard() {
   const metricHistory = world?.raw?.metrics ?? [];
 
   useEffect(() => {
-    if (!followed || followedSubject.status !== "descendant" || !followedSubject.organism) {
-      return;
-    }
+    const updated = followed.map((item) => {
+      const subject = followedSubjects.find((candidate) => candidate.followed.rootId === item.rootId);
 
-    if (followed.currentId === followedSubject.organism.id) {
-      return;
-    }
+      if (subject?.status === "descendant" && subject.organism && subject.organism.id !== item.currentId) {
+        return {
+          ...item,
+          currentId: subject.organism.id,
+        };
+      }
 
-    setFollowed({
-      ...followed,
-      currentId: followedSubject.organism.id,
+      return item;
     });
-  }, [followed, followedSubject]);
+
+    if (updated.every((item, index) => item.currentId === followed[index]?.currentId)) {
+      return;
+    }
+
+    setFollowed(updated);
+  }, [followed, followedSubjects]);
 
   const startFollowing = useCallback((organism: Organism) => {
-    const displayName = organism.name || `Linhagem #${organism.id}`;
+    setFollowed((current) => {
+      if (current.some((item) => item.rootId === organism.id || item.currentId === organism.id)) {
+        setFollowNotice(`O organismo #${organism.id} ja esta sendo acompanhado.`);
+        return current;
+      }
 
-    setFollowed({
-      rootId: organism.id,
-      currentId: organism.id,
-      displayName,
+      if (current.length >= maxFollowedOrganisms) {
+        setFollowNotice(`Limite de ${maxFollowedOrganisms} organismos acompanhados atingido.`);
+        return current;
+      }
+
+      setFollowNotice(`Acompanhando #${organism.id}.`);
+      return [
+        ...current,
+        {
+          rootId: organism.id,
+          currentId: organism.id,
+          displayName: organism.name || `Linhagem #${organism.id}`,
+        },
+      ];
     });
-    setFollowName(displayName);
   }, []);
 
-  const saveFollowName = useCallback(() => {
-    if (!followed) {
+  const stopFollowing = useCallback((rootId: number) => {
+    setFollowed((current) => current.filter((item) => item.rootId !== rootId));
+  }, []);
+
+  const renameFollowed = useCallback((rootId: number, displayName: string) => {
+    setFollowed((current) => current.map((item) => {
+      if (item.rootId !== rootId) {
+        return item;
+      }
+
+      return {
+        ...item,
+        displayName: displayName.trimStart(),
+      };
+    }));
+  }, []);
+
+  const normalizeFollowedName = useCallback((rootId: number) => {
+    setFollowed((current) => current.map((item) => {
+      if (item.rootId !== rootId) {
+        return item;
+      }
+
+      const displayName = item.displayName.trim() || `Linhagem #${item.rootId}`;
+
+      return {
+        ...item,
+        displayName,
+      };
+    }));
+  }, []);
+
+  const followOrganismAtTile = useCallback(
+    (tile: Tile) => {
+      const organism = organismsByPoint.get(pointKey(tile))?.[0];
+
+      if (!organism) {
+        setFollowNotice("Essa celula nao tem organismo vivo para acompanhar.");
+        return;
+      }
+
+      startFollowing(organism);
+    },
+    [organismsByPoint, startFollowing],
+  );
+
+  const handleTileKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, tile: Tile) => {
+      if (event.key !== "Enter" && event.key !== " ") {
       return;
     }
 
-    const displayName = followName.trim() || `Linhagem #${followed.rootId}`;
-
-    setFollowed({
-      ...followed,
-      displayName,
-    });
-    setFollowName(displayName);
-  }, [followName, followed]);
+      event.preventDefault();
+      followOrganismAtTile(tile);
+    },
+    [followOrganismAtTile],
+  );
 
   return (
     <main className="app">
@@ -703,14 +807,19 @@ export function SqliveDashboard() {
           >
             {tiles.map((tile) => {
               const key = pointKey(tile);
+              const tileOrganisms = organismsByPoint.get(key) ?? [];
               const hasOrganism = organismPoints.has(key);
               const hasResource = resourcePoints.has(key);
               const hasFastOrganism = fastestPoints.has(key);
               const hasStrongOrganism = strongestPoints.has(key);
-              const isFollowed = followedPoint === key;
+              const isFollowed = followedPointKeys.has(key);
+              const tileLabel = hasOrganism
+                ? `Acompanhar organismo ${tileOrganisms[0].id} em x ${tile.x}, y ${tile.y}`
+                : `Celula x ${tile.x}, y ${tile.y}`;
 
               return (
-                <span
+                <button
+                  aria-label={tileLabel}
                   className={[
                     "tile",
                     hasOrganism ? "organism" : "",
@@ -723,8 +832,12 @@ export function SqliveDashboard() {
                   ]
                     .filter(Boolean)
                     .join(" ")}
+                  disabled={!hasOrganism}
                   key={key}
-                  title={`${tile.x}, ${tile.y}`}
+                  onClick={() => followOrganismAtTile(tile)}
+                  onKeyDown={(event) => handleTileKeyDown(event, tile)}
+                  title={hasOrganism ? `#${tileOrganisms[0].id} em ${tile.x}, ${tile.y}` : `${tile.x}, ${tile.y}`}
+                  type="button"
                 />
               );
             })}
@@ -744,70 +857,90 @@ export function SqliveDashboard() {
           <section>
             <div className="sectionTitle">
               <div>
-                <h2>Vida acompanhada</h2>
-                <p>{followed ? followed.displayName : "nenhum organismo escolhido"}</p>
+                <h2>Vidas acompanhadas</h2>
+                <p>{followed.length} de {maxFollowedOrganisms} linhagens fixadas</p>
               </div>
-              <span>
-                {followedSubject.status === "alive"
-                  ? "vivo"
-                  : followedSubject.status === "descendant"
-                    ? "descendente"
-                    : followedSubject.status === "extinct"
-                      ? "linhagem encerrada"
-                      : "-"}
-              </span>
+              <span>max {maxFollowedOrganisms}</span>
             </div>
 
-            {followed && followedOrganism ? (
-              <div className="trackedPanel">
-                <div className="followNameEditor">
-                  <input
-                    aria-label="Nome da vida acompanhada"
-                    onBlur={saveFollowName}
-                    onChange={(event) => setFollowName(event.currentTarget.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        saveFollowName();
-                        event.currentTarget.blur();
-                      }
-                    }}
-                    value={followName}
-                  />
-                  <button type="button" onClick={saveFollowName}>
-                    Salvar
-                  </button>
-                </div>
-                <div className="trackedStats">
-                  <article>
-                    <span>ID ativo</span>
-                    <strong>#{followedOrganism.id}</strong>
-                  </article>
-                  <article>
-                    <span>Geracao</span>
-                    <strong>G{followedOrganism.generation}</strong>
-                  </article>
-                  <article>
-                    <span>Energia</span>
-                    <strong>{followedOrganism.energy}</strong>
-                  </article>
-                  <article>
-                    <span>Idade</span>
-                    <strong>{followedOrganism.age ?? "-"}</strong>
-                  </article>
-                </div>
-                <p className="trackedNote">
-                  {followedSubject.status === "descendant"
-                    ? `O organismo anterior #${followedSubject.previous?.id ?? followed.currentId} saiu da populacao viva; seguindo #${followedOrganism.id}.`
-                    : followedSubject.status === "extinct"
-                      ? `Nenhum descendente vivo encontrado para a linhagem iniciada em #${followed.rootId}.`
-                      : `${followedOrganism.species ?? "especie"} em x:${followedOrganism.x} y:${followedOrganism.y}.`}
-                </p>
-                <button className="secondaryButton" type="button" onClick={() => setFollowed(null)}>
-                  Parar acompanhamento
-                </button>
+            {followNotice ? <p className="trackedNotice">{followNotice}</p> : null}
+
+            {followedSubjects.length > 0 ? (
+              <div className="trackedList">
+                {followedSubjects.map((subject) => {
+                  const followedOrganism = subject.organism;
+
+                  return (
+                    <article className="trackedPanel" key={subject.followed.rootId}>
+                      <div className="trackedHeader">
+                        <input
+                          aria-label={`Nome da vida acompanhada ${subject.followed.rootId}`}
+                          onBlur={() => normalizeFollowedName(subject.followed.rootId)}
+                          onChange={(event) => renameFollowed(subject.followed.rootId, event.currentTarget.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              normalizeFollowedName(subject.followed.rootId);
+                              event.currentTarget.blur();
+                            }
+                          }}
+                          value={subject.followed.displayName}
+                        />
+                        <span>
+                          {subject.status === "alive"
+                            ? "vivo"
+                            : subject.status === "descendant"
+                              ? "descendente"
+                              : subject.status === "extinct"
+                                ? "encerrada"
+                                : "-"}
+                        </span>
+                      </div>
+
+                      {followedOrganism ? (
+                        <>
+                          <div className="trackedStats">
+                            <article>
+                              <span>ID ativo</span>
+                              <strong>#{followedOrganism.id}</strong>
+                            </article>
+                            <article>
+                              <span>Geracao</span>
+                              <strong>G{followedOrganism.generation}</strong>
+                            </article>
+                            <article>
+                              <span>Energia</span>
+                              <strong>{followedOrganism.energy}</strong>
+                            </article>
+                            <article>
+                              <span>Idade</span>
+                              <strong>{followedOrganism.age ?? "-"}</strong>
+                            </article>
+                          </div>
+                          <p className="trackedNote">
+                            {subject.status === "descendant"
+                              ? `O organismo anterior #${subject.previous?.id ?? subject.followed.currentId} saiu da populacao viva; seguindo #${followedOrganism.id}.`
+                              : subject.status === "extinct"
+                                ? `Nenhum descendente vivo encontrado para a linhagem iniciada em #${subject.followed.rootId}.`
+                                : `${followedOrganism.species ?? "especie"} em x:${followedOrganism.x} y:${followedOrganism.y}.`}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="trackedNote">Aguardando dados da linhagem.</p>
+                      )}
+
+                      <button
+                        className="secondaryButton"
+                        type="button"
+                        onClick={() => stopFollowing(subject.followed.rootId)}
+                      >
+                        Parar acompanhamento
+                      </button>
+                    </article>
+                  );
+                })}
               </div>
             ) : (
-              <p className="emptyState">Escolha um organismo vivo na lista abaixo para fixar a linhagem neste navegador.</p>
+              <p className="emptyState">Clique em um organismo no mapa ou use a lista abaixo para fixar ate 5 linhagens neste navegador.</p>
             )}
           </section>
 
@@ -818,7 +951,7 @@ export function SqliveDashboard() {
             </div>
             <div className="organismList">
               {(world?.entities ?? []).slice(0, 40).map((organism) => (
-                <article className={["organismRow", followedOrganism?.id === organism.id ? "isFollowedRow" : ""].filter(Boolean).join(" ")} key={organism.id}>
+                <article className={["organismRow", followedCurrentIds.has(organism.id) ? "isFollowedRow" : ""].filter(Boolean).join(" ")} key={organism.id}>
                   <div className="rowTop">
                     <strong>#{organism.id}</strong>
                     <span>G{organism.generation}</span>
