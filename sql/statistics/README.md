@@ -20,7 +20,9 @@ sqlcmd -S .\SQLEXPRESS -E -C -d SuaBase -b -i sql\statistics\run_all.sql
 
 Troque a instancia e `SuaBase` pela sua base de destino. O script cria o tipo,
 cria/atualiza as duas funcoes e executa os testes. Pode ser executado novamente.
-Os dados ficticios ficam em variaveis de tabela.
+Os dados ficticios ficam na tabela temporaria `#DadosFicticios`, criada pelo
+exemplo e removida ao terminar. O exemplo usa apenas os registros inseridos
+nesse script.
 
 No SSMS, habilite o modo SQLCMD e execute `run_all.sql` com os caminhos `:r`
 apontando para a raiz do repositorio. Sem modo SQLCMD, execute manualmente:
@@ -41,20 +43,34 @@ zero, tres classes, entrada vazia, todas as frequencias zeradas e um total acima
 do limite de `bigint`. A comparacao usa tolerancia de `1e-12` e gera `THROW` se
 algum resultado divergir.
 
-## Usar com a tabela do exemplo original
+## Exemplo com tabela temporaria
 
 Depois de instalar as funcoes na base em que esta executando a consulta:
 
 ```sql
+DROP TABLE IF EXISTS #DadosFicticios;
+
+CREATE TABLE #DadosFicticios
+(
+    Id int NOT NULL PRIMARY KEY,
+    Class int NOT NULL
+);
+
+INSERT INTO #DadosFicticios (Id, Class)
+VALUES (1, 0), (2, 0), (3, 0), (4, 0), (5, 0),
+       (6, 0), (7, 0), (8, 0), (9, 1), (10, 1);
+
 DECLARE @Frequencias dbo.FrequenciasClasse;
 
 INSERT INTO @Frequencias (Qtd)
 SELECT COUNT_BIG(*)
-FROM treino.kaggle.TB_CREDITCARD
-GROUP BY class;
+FROM #DadosFicticios
+GROUP BY Class;
 
 SELECT dbo.fn_gini(@Frequencias) AS GINI,
        dbo.fn_entropia(@Frequencias) AS ENTROPIA;
+
+DROP TABLE #DadosFicticios;
 ```
 
 ## Comportamento

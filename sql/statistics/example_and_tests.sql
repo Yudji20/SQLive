@@ -1,13 +1,15 @@
 SET NOCOUNT ON;
 
--- Exemplo equivalente ao GROUP BY class da tabela de cartoes.
-DECLARE @DadosFicticios TABLE
+-- Tabela temporaria com dados inteiramente ficticios para testar os calculos.
+DROP TABLE IF EXISTS #DadosFicticios;
+
+CREATE TABLE #DadosFicticios
 (
     Id int NOT NULL PRIMARY KEY,
     Class int NOT NULL
 );
 
-INSERT INTO @DadosFicticios (Id, Class)
+INSERT INTO #DadosFicticios (Id, Class)
 VALUES (1, 0), (2, 0), (3, 0), (4, 0), (5, 0),
        (6, 0), (7, 0), (8, 0), (9, 1), (10, 1);
 
@@ -15,11 +17,11 @@ DECLARE @Frequencias dbo.FrequenciasClasse;
 
 INSERT INTO @Frequencias (Qtd)
 SELECT COUNT_BIG(*)
-FROM @DadosFicticios
+FROM #DadosFicticios
 GROUP BY Class;
 
 SELECT Class, COUNT_BIG(*) AS Qtd
-FROM @DadosFicticios
+FROM #DadosFicticios
 GROUP BY Class
 ORDER BY Class;
 
@@ -93,5 +95,7 @@ BEGIN
     THROW 51000, 'FAIL: resultado de Gini ou entropia diferente do esperado.', 1;
 END;
 
-PRINT 'PASS: 7 cenarios de Gini e entropia validados.';
+DROP TABLE #DadosFicticios;
+
+PRINT 'PASS: 7 cenarios de Gini e entropia validados; tabela temporaria removida.';
 GO
